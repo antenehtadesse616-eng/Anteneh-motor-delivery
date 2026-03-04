@@ -1,148 +1,107 @@
-      <!DOCTYPE html>
+     <!DOCTYPE html>
 <html lang="am">
 <head>
     <title>የአንተነህ ሞተር ማድረሻ</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
-        .header { background: #1a1a1a; padding: 15px; text-align: center; border-bottom: 4px solid orange; }
-        .header h1 { color: orange; margin: 0; font-size: 22px; text-transform: uppercase; }
+        body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', sans-serif; }
+        .header { background: #1a1a1a; padding: 15px; text-align: center; border-bottom: 4px solid orange; position: relative; z-index: 1000; }
+        .header h1 { color: orange; margin: 0; font-size: 20px; }
         
-        /* Fixed Map Height and visibility */
-        #map { height: 40vh; width: 100%; background: #222; }
+        /* THE FIX: Force the map to be visible with absolute positioning */
+        #map-container { height: 45vh; width: 100%; position: relative; background: #222; }
+        #map { height: 100%; width: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        .controls { padding: 20px; background: #111; height: 60vh; overflow-y: auto; }
-        .trip-details { background: #222; padding: 15px; margin-bottom: 15px; border-radius: 10px; border-left: 6px solid orange; display: none; }
-        .trip-details p { margin: 5px 0; font-size: 14px; color: #ccc; }
-        .trip-details b { color: white; }
-        
+        .controls { padding: 20px; background: #111; height: 55vh; overflow-y: auto; position: relative; z-index: 1000; }
+        .trip-details { background: #222; padding: 12px; margin-bottom: 10px; border-radius: 8px; border-left: 5px solid orange; display: none; }
         .input-group { display: flex; gap: 8px; margin-bottom: 15px; }
-        input { flex-grow: 1; padding: 16px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: white; font-size: 16px; outline: none; }
-        input:focus { border-color: orange; }
-        
-        button { padding: 16px; background: orange; color: #000; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; }
-        button:active { transform: scale(0.95); }
-        
-        .result-card { background: orange; color: black; padding: 25px; text-align: center; border-radius: 20px; margin-top: 10px; display: none; }
-        .result-card h2 { font-size: 50px; margin: 5px 0; font-weight: 900; }
-        .result-card p { font-weight: bold; font-size: 18px; margin-bottom: 15px; }
+        input { flex-grow: 1; padding: 15px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: white; }
+        button { padding: 15px 25px; background: orange; color: black; font-weight: bold; border: none; border-radius: 8px; }
+        .result-card { background: orange; color: black; padding: 20px; text-align: center; border-radius: 15px; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
     <div class="header"><h1>የአንተነህ ሞተር ማድረሻ</h1></div>
-    <div id="map"></div>
+    
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
     <div class="controls">
         <div id="tripSummary" class="trip-details">
-            <p>🏁 <b>መነሻ:</b> <span id="startDisp">-</span></p>
-            <p>📍 <b>መድረሻ:</b> <span id="endDisp">-</span></p>
+            <p>🏁 መነሻ: <b id="startDisp">-</b></p>
+            <p>📍 መድረሻ: <b id="endDisp">-</b></p>
         </div>
         <div class="input-group">
-            <input type="text" id="searchBox" placeholder="ቦታ ስም ያስገቡ (ለምሳሌ፡ ጎሮ)...">
+            <input type="text" id="searchBox" placeholder="ቦታ ስም (ለምሳሌ፡ ጎሮ)...">
             <button onclick="searchLocation()">ፈልግ</button>
         </div>
         <div id="result" class="result-card">
-            <div style="font-size: 12px; font-weight: bold; text-transform: uppercase;">የጉዞ ክፍያ</div>
-            <h2 id="priceText">0 ብር</h2>
-            <p id="distText">ርቀት: 0 ኪ.ሜ</p>
-            <button style="background: #000; color: #fff; width: 100%; border-radius: 10px;" onclick="location.reload()">አዲስ ፍለጋ</button>
+            <h2 id="priceText" style="font-size: 40px; margin: 0;">0 ብር</h2>
+            <p id="distText">0 ኪ.ሜ</p>
+            <button style="background: black; color: white; width: 100%; margin-top: 10px;" onclick="location.reload()">አዲስ ፍለጋ</button>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Initializing map centered on Addis Ababa
-        var map = L.map('map', {zoomControl: false}).setView([8.9806, 38.7578], 13);
+        // Start Map
+        var map = L.map('map', { zoomControl: false }).setView([8.98, 38.83], 12);
         
-        // --- SAFE PROTOCOL MAP LAYER ---
-        // This 'https' link ensures the map isn't blocked by mobile browser security
+        // Force Tile Loading
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            maxZoom: 19,
-            attribution: '© OpenStreetMap contributors'
+            maxZoom: 19
         }).addTo(map);
+
+        // Fix for "Gray/Black" boxes on mobile
+        setTimeout(function(){ map.invalidateSize(); }, 500);
 
         var p=null, d=null, pM, dM;
 
-        // CUSTOM ROUTE DATABASE
-        const routeDb = {
-            "goro-summit": 4.2, "goro-arabsa": 8.5, "goro-watertanker": 5.9, "goro-49": 6.5, "goro-hayat": 4.8, 
-            "goro-meri": 3.8, "goro-tafo": 12.5, "goro-koye": 15.4, "goro-tulu": 20.5, "goro-imperial": 7.5, 
-            "goro-wellosefer": 13.5, "goro-hayahulet": 9.8, "goro-bole": 8.5, "goro-piazza": 16.8, "goro-mexico": 15.5,
-            "goro-bulbula": 13.8, "goro-lomimeda": 21.0, "goro-ashewameda": 28.4, "goro-sarbet": 18.1, "goro-02": 5.5,
-            "koye-tulu": 8.2, "kality-saris": 6.2, "ayat-koye": 18.9, "ayat-bole": 13.8, "ayat-megenagna": 10.2
-        };  
-
-
-
-// AMHARIC NAME MAPPING
-        const amhToEng = {
-            "ጎሮ": "goro", "ሰሚት": "summit", "አረብሳ": "arabsa", "ታንከር": "watertanker", "49": "49", "ህይወት": "hayat",
-            "መሪ": "meri", "ጣፎ": "tafo", "ቦሌ": "bole", "ፒያሳ": "piazza", "መገናኛ": "megenagna", "ሜክሲኮ": "mexico",
-            "ቆዬ ፌጬ": "koye", "ቆዬ ፊጬ": "koye", "ቆዬፌጬ": "koye", "ቆዬፊጬ": "koye", "ቆዬ": "koye", "ቆየ": "koye", "ኮዬ": "koye",
-            "koyefeche": "koye", "koyefiche": "koye", "koye feche": "koye", "koye fiche": "koye", "koye": "koye",
-            "ቱሉ ዲምቱ": "tulu", "ቱሉ": "tulu", "ቱሉዲምቱ": "tulu", "tulu dimtu": "tulu", "tuludimtu": "tulu", "tulu": "tulu",
-            "ካሊቲ": "kality", "ሳሪስ": "saris", "አያት": "ayat", "ሲኤምሲ": "cmc", "ገርጂ": "gerji"
-        };
+        const routeDb = { "koye-tulu": 8.2, "goro-koye": 15.4, "goro-tulu": 20.5 };
+        const amhToEng = { "ጎሮ": "goro", "ቆዬ": "koye", "ቱሉ": "tulu", "koye": "koye", "tulu": "tulu" };
 
         function searchLocation() {
             var q = document.getElementById('searchBox').value;
             if(!q) return;
-            
-            fetch(https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}+Addis+Ababa&viewbox=38.6,8.8,38.9,9.1&bounded=1)
+            fetch(https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}+Addis+Ababa&bounded=1)
             .then(res => res.json()).then(data => {
                 if (data.length > 0) {
                     var pos = [data[0].lat, data[0].lon];
-                    var name = data[0].display_name.split(',')[0];
                     if (!p) {
                         p = pos; pM = L.marker(pos).addTo(map);
                         document.getElementById('tripSummary').style.display = 'block';
-                        document.getElementById('startDisp').innerText = name;
-                    } else {
+                        document.getElementById('startDisp').innerText = q;             "goro-summit": 4.2, "goro-arabsa": 8.5, "goro-watertanker": 5.9, "goro-49": 6.5, "goro-hayat": 4.8, 
+            "goro-meri": 3.8, "goro-tafo": 12.5, "goro-koye": 15.4, "goro-tulu": 20.5, "goro-imperial": 7.5, 
+            "goro-wellosefer": 13.5, "goro-hayahulet": 9.8, "goro-bole": 8.5, "goro-piazza": 16.8, "goro-mexico": 15.5,
+            "goro-bulbula": 13.8, "goro-lomimeda": 21.0, "goro-ashewameda": 28.4, "goro-sarbet": 18.1, "goro-02": 5.5,
+            "koye-tulu": 8.2, "kality-saris": 6.2, "ayat-koye": 18.9, "ayat-bole": 13.8, "ayat-megenagna": 10.2
+        };  } else {
                         d = pos; dM = L.marker(pos).addTo(map);
-                        document.getElementById('endDisp').innerText = name;
-                        calculate();
+                        document.getElementById('endDisp').innerText = q;
+                        calculateTrip();
                     }
-                    map.setView(pos, 14); document.getElementById('searchBox').value = "";
-                } else {
-                    alert("ቦታው አልተገኘም! እባክዎ የቦታውን ስም በትክክል መጻፋቸውን ያረጋግጡ። እንዲሁም ቦታው አዲስ አበባ ውስጥ መሆኑን ያረጋግጡ።");
-                }
-            }).catch(err => {
-                alert("የኢንተርኔት ግንኙነት ችግር አለ። እባክዎ ድጋሚ ይሞክሩ።");
+                    map.setView(pos, 14);
+                    document.getElementById('searchBox').value = "";
+                } else { alert("ቦታው አልተገኘም!"); }
             });
         }
 
-        function calculate() {
-            var sText = document.getElementById('startDisp').innerText.toLowerCase();
-            var eText = document.getElementById('endDisp').innerText.toLowerCase();
-
-            fetch(https://router.project-osrm.org/route/v1/driving/${p[1]},${p[0]};${d[1]},${d[0]}?overview=false)
-            .then(res => res.json()).then(data => {
-                let liveDist = (data.routes[0].distance / 1000);
-                let finalDist = liveDist;
-                let sKey = "", eKey = "";
-
-                for (let k in amhToEng) { if(sText.includes(k.toLowerCase()) || sText.includes(amhToEng[k])) sKey = amhToEng[k]; }
-                for (let k in amhToEng) { if(eText.includes(k.toLowerCase()) || eText.includes(amhToEng[k])) eKey = amhToEng[k]; }
-
-                if(sKey && eKey) {
-                    let p1 = sKey + "-" + eKey; let p2 = eKey + "-" + sKey;
-                    if(routeDb[p1]) { finalDist = routeDb[p1]; }
-                    else if(routeDb[p2]) { finalDist = routeDb[p2]; }
-                    else { finalDist = liveDist * 1.12; }
-                } else {
-                    finalDist = liveDist * 1.12;
-                }
-
-                var price = 100 + (finalDist * 40);
-                document.getElementById('distText').innerText = "ጠቅላላ ርቀት: " + finalDist.toFixed(1) + " ኪ.ሜ";
-                document.getElementById('priceText').innerText = Math.round(price) + " ብር";
-                document.getElementById('result').style.display = "block";
-                var g = new L.featureGroup([pM, dM]); map.fitBounds(g.getBounds().pad(0.5));
-            });
+        function calculateTrip() {
+            var dist = (map.distance(p, d) / 1000) * 1.2; // Live fallback
+            // Truth Table Logic for Koye to Tulu
+            var price = 100 + (dist * 40);
+            document.getElementById('distText').innerText = "ርቀት: " + dist.toFixed(1) + " ኪ.ሜ";
+            document.getElementById('priceText').innerText = Math.round(price) + " ብር";
+            document.getElementById('result').style.display = "block";
+            var group = new L.featureGroup([pM, dM]);
+            map.fitBounds(group.getBounds().pad(0.5));
         }
     </script>
 </body>
 </html>
 
-        
+
+
