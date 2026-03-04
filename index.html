@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+      <!DOCTYPE html>
 <html lang="am">
 <head>
     <title>የአንተነህ ሞተር ማድረሻ</title>
@@ -9,16 +9,22 @@
         body { margin: 0; background: #000; color: white; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         .header { background: #1a1a1a; padding: 15px; text-align: center; border-bottom: 4px solid orange; }
         .header h1 { color: orange; margin: 0; font-size: 22px; text-transform: uppercase; }
-        #map { height: 40vh; width: 100%; filter: none; }
+        
+        /* Fixed Map Height and visibility */
+        #map { height: 40vh; width: 100%; background: #222; }
+        
         .controls { padding: 20px; background: #111; height: 60vh; overflow-y: auto; }
         .trip-details { background: #222; padding: 15px; margin-bottom: 15px; border-radius: 10px; border-left: 6px solid orange; display: none; }
         .trip-details p { margin: 5px 0; font-size: 14px; color: #ccc; }
         .trip-details b { color: white; }
+        
         .input-group { display: flex; gap: 8px; margin-bottom: 15px; }
         input { flex-grow: 1; padding: 16px; border-radius: 10px; border: 1px solid #333; background: #1a1a1a; color: white; font-size: 16px; outline: none; }
         input:focus { border-color: orange; }
+        
         button { padding: 16px; background: orange; color: #000; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; }
         button:active { transform: scale(0.95); }
+        
         .result-card { background: orange; color: black; padding: 25px; text-align: center; border-radius: 20px; margin-top: 10px; display: none; }
         .result-card h2 { font-size: 50px; margin: 5px 0; font-weight: 900; }
         .result-card p { font-weight: bold; font-size: 18px; margin-bottom: 15px; }
@@ -46,18 +52,31 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        var map = L.map('map', {zoomControl: false}).setView([8.98, 38.83], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        // Initializing map centered on Addis Ababa
+        var map = L.map('map', {zoomControl: false}).setView([8.9806, 38.7578], 13);
+        
+        // --- SAFE PROTOCOL MAP LAYER ---
+        // This 'https' link ensures the map isn't blocked by mobile browser security
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
         var p=null, d=null, pM, dM;
 
+        // CUSTOM ROUTE DATABASE
         const routeDb = {
             "goro-summit": 4.2, "goro-arabsa": 8.5, "goro-watertanker": 5.9, "goro-49": 6.5, "goro-hayat": 4.8, 
             "goro-meri": 3.8, "goro-tafo": 12.5, "goro-koye": 15.4, "goro-tulu": 20.5, "goro-imperial": 7.5, 
             "goro-wellosefer": 13.5, "goro-hayahulet": 9.8, "goro-bole": 8.5, "goro-piazza": 16.8, "goro-mexico": 15.5,
             "goro-bulbula": 13.8, "goro-lomimeda": 21.0, "goro-ashewameda": 28.4, "goro-sarbet": 18.1, "goro-02": 5.5,
             "koye-tulu": 8.2, "kality-saris": 6.2, "ayat-koye": 18.9, "ayat-bole": 13.8, "ayat-megenagna": 10.2
-        };
-const amhToEng = {
+        };  
+
+
+
+// AMHARIC NAME MAPPING
+        const amhToEng = {
             "ጎሮ": "goro", "ሰሚት": "summit", "አረብሳ": "arabsa", "ታንከር": "watertanker", "49": "49", "ህይወት": "hayat",
             "መሪ": "meri", "ጣፎ": "tafo", "ቦሌ": "bole", "ፒያሳ": "piazza", "መገናኛ": "megenagna", "ሜክሲኮ": "mexico",
             "ቆዬ ፌጬ": "koye", "ቆዬ ፊጬ": "koye", "ቆዬፌጬ": "koye", "ቆዬፊጬ": "koye", "ቆዬ": "koye", "ቆየ": "koye", "ኮዬ": "koye",
@@ -70,7 +89,6 @@ const amhToEng = {
             var q = document.getElementById('searchBox').value;
             if(!q) return;
             
-            // Search strictly within Addis Ababa
             fetch(https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}+Addis+Ababa&viewbox=38.6,8.8,38.9,9.1&bounded=1)
             .then(res => res.json()).then(data => {
                 if (data.length > 0) {
@@ -87,7 +105,6 @@ const amhToEng = {
                     }
                     map.setView(pos, 14); document.getElementById('searchBox').value = "";
                 } else {
-                    // AMHARIC ERROR POPUP
                     alert("ቦታው አልተገኘም! እባክዎ የቦታውን ስም በትክክል መጻፋቸውን ያረጋግጡ። እንዲሁም ቦታው አዲስ አበባ ውስጥ መሆኑን ያረጋግጡ።");
                 }
             }).catch(err => {
@@ -105,8 +122,8 @@ const amhToEng = {
                 let finalDist = liveDist;
                 let sKey = "", eKey = "";
 
-                for (let k in amhToEng) { if(sText.includes(k.toLowerCase())  sText.includes(amhToEng[k])) sKey = amhToEng[k]; }
-                for (let k in amhToEng) { if(eText.includes(k.toLowerCase())  eText.includes(amhToEng[k])) eKey = amhToEng[k]; }
+                for (let k in amhToEng) { if(sText.includes(k.toLowerCase()) || sText.includes(amhToEng[k])) sKey = amhToEng[k]; }
+                for (let k in amhToEng) { if(eText.includes(k.toLowerCase()) || eText.includes(amhToEng[k])) eKey = amhToEng[k]; }
 
                 if(sKey && eKey) {
                     let p1 = sKey + "-" + eKey; let p2 = eKey + "-" + sKey;
@@ -128,9 +145,4 @@ const amhToEng = {
 </body>
 </html>
 
-
-
-
-
-
-
+        
